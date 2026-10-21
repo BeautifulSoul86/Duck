@@ -157,17 +157,17 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
     private fun switchDialogShowImportInProgressView() {
         showDialogContent()
 
-        binding.prePostViewSwitcher.displayedChild = 1
-        binding.postflow.inProgressFinishedViewSwitcher.displayedChild = 0
+        binding.legacy.prePostViewSwitcher.displayedChild = 1
+        binding.legacy.postflow.inProgressFinishedViewSwitcher.displayedChild = 0
     }
 
     private fun switchDialogShowImportResultsView() {
-        binding.prePostViewSwitcher.displayedChild = 1
-        binding.postflow.inProgressFinishedViewSwitcher.displayedChild = 1
+        binding.legacy.prePostViewSwitcher.displayedChild = 1
+        binding.legacy.postflow.inProgressFinishedViewSwitcher.displayedChild = 1
     }
 
     private fun switchDialogShowPreImportView(usesCredentialExchange: Boolean) {
-        with(binding.preflow) {
+        with(binding.legacy.preflow) {
             dialogTitle.text = getString(R.string.importPasswordsChooseMethodDialogTitle)
             val subtitle = if (usesCredentialExchange) {
                 R.string.importPasswordsChooseMethodDialogSubtitleDeviceAuth
@@ -180,11 +180,11 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
             appIcon.show()
         }
         showDialogContent()
-        binding.prePostViewSwitcher.displayedChild = 0
+        binding.legacy.prePostViewSwitcher.displayedChild = 0
     }
 
     private fun switchDialogShowInBrowserPromoPreImportView(usesCredentialExchange: Boolean) {
-        with(binding.preflow) {
+        with(binding.legacy.preflow) {
             val (title, subtitle) = if (usesCredentialExchange) {
                 R.string.passwords_import_promo_in_browser_title_device_auth to R.string.passwords_import_promo_subtitle_device_auth
             } else {
@@ -207,28 +207,28 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
             appIcon.gone()
         }
         showDialogContent()
-        binding.prePostViewSwitcher.displayedChild = 0
+        binding.legacy.prePostViewSwitcher.displayedChild = 0
     }
 
     private fun processSuccessResult(result: CredentialImporter.ImportResult.Finished) {
         successImport = true
         showDialogContent()
 
-        binding.postflow.importFinished.errorNotImported.visibility = View.GONE
-        binding.postflow.appIcon.setImageDrawable(
+        binding.legacy.postflow.importFinished.errorNotImported.visibility = View.GONE
+        binding.legacy.postflow.appIcon.setImageDrawable(
             ContextCompat.getDrawable(
                 binding.root.context,
                 R.drawable.success_128,
             ),
         )
-        binding.postflow.dialogTitle.text = getString(R.string.importPasswordsProcessingResultDialogTitleUponSuccess)
+        binding.legacy.postflow.dialogTitle.text = getString(R.string.importPasswordsProcessingResultDialogTitleUponSuccess)
 
-        with(binding.postflow.importFinished.resultsImported) {
+        with(binding.legacy.postflow.importFinished.resultsImported) {
             val output = getString(R.string.importPasswordsProcessingResultDialogResultPasswordsImported, result.savedCredentials)
             setPrimaryText(output.html(binding.root.context))
         }
 
-        with(binding.postflow.importFinished.duplicatesNotImported) {
+        with(binding.legacy.postflow.importFinished.duplicatesNotImported) {
             val output = getString(R.string.importPasswordsProcessingResultDialogResultDuplicatesSkipped, result.numberSkipped)
             setPrimaryText(output.html(binding.root.context))
             visibility = if (result.numberSkipped > 0) View.VISIBLE else View.GONE
@@ -240,12 +240,12 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
     private fun processErrorResult() {
         showDialogContent()
 
-        binding.postflow.importFinished.resultsImported.visibility = View.GONE
-        binding.postflow.importFinished.duplicatesNotImported.visibility = View.GONE
-        binding.postflow.importFinished.errorNotImported.visibility = View.VISIBLE
+        binding.legacy.postflow.importFinished.resultsImported.visibility = View.GONE
+        binding.legacy.postflow.importFinished.duplicatesNotImported.visibility = View.GONE
+        binding.legacy.postflow.importFinished.errorNotImported.visibility = View.VISIBLE
 
-        binding.postflow.dialogTitle.text = getString(R.string.importPasswordsProcessingResultDialogTitleBeforeSuccess)
-        binding.postflow.appIcon.setImageDrawable(
+        binding.legacy.postflow.dialogTitle.text = getString(R.string.importPasswordsProcessingResultDialogTitleBeforeSuccess)
+        binding.legacy.postflow.appIcon.setImageDrawable(
             ContextCompat.getDrawable(
                 binding.root.context,
                 R.drawable.passwords_import_128,
@@ -379,17 +379,17 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
         (dialog as BottomSheetDialog).behavior.state = BottomSheetBehavior.STATE_EXPANDED
         configureCloseButton(binding)
 
-        with(binding.preflow.importGcmButton) {
+        with(binding.legacy.preflow.importGcmButton) {
             setOnClickListener { onImportGcmButtonClicked() }
         }
 
-        with(binding.postflow.importFinished.primaryCtaButton) {
+        with(binding.legacy.postflow.importFinished.primaryCtaButton) {
             setOnClickListener {
                 dismiss()
             }
         }
 
-        binding.preflow.declineButton.setOnClickListener {
+        binding.legacy.preflow.declineButton.setOnClickListener {
             viewModel.onInBrowserPromoDismissed()
         }
     }
@@ -441,7 +441,7 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
     }
 
     private fun configureCloseButton(binding: ContentImportFromGooglePasswordDialogBinding) {
-        binding.closeButton.setOnClickListener { (dialog as BottomSheetDialog).animateClosed() }
+        binding.legacy.closeButton.setOnClickListener { (dialog as BottomSheetDialog).animateClosed() }
     }
 
     private fun getOriginalUrl() = arguments?.getString(KEY_URL)
