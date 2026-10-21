@@ -16,13 +16,16 @@
 
 package com.duckduckgo.app.global.view
 
+import android.app.ActivityManager
 import android.content.Context
 import android.webkit.WebStorage
 import android.webkit.WebView
+import androidx.core.content.getSystemService
 import com.duckduckgo.app.browser.WebDataManager
 import com.duckduckgo.app.browser.api.WebViewCapabilityChecker
 import com.duckduckgo.app.browser.api.WebViewCapabilityChecker.WebViewCapability.DeleteBrowsingData
 import com.duckduckgo.app.browser.cookies.ThirdPartyCookieManager
+import com.duckduckgo.app.browser.customtabs.CustomTabActivity
 import com.duckduckgo.app.fire.AppCacheClearer
 import com.duckduckgo.app.fire.FireActivity
 import com.duckduckgo.app.fire.SiteDataCleaner
@@ -61,6 +64,11 @@ interface ClearDataAction {
      * Clears tabs and associated data.
      */
     suspend fun clearTabsOnly()
+
+    /**
+     * Closes the custom tabs that are open now, including those in other apps' tasks.
+     */
+    suspend fun closeCustomTabs()
 
     /**
      * Clears browser data except tabs and chats.
@@ -139,6 +147,17 @@ class ClearPersonalDataAction(
         withContext(dispatchers.io()) {
             tabRepository.deleteAll()
             logcat { "Finished clearing tabs" }
+        }
+    }
+
+    override suspend fun closeCustomTabs() {
+        withContext(dispatchers.io()) {
+            settingsDataStore.tabsClearedTimestamp = System.currentTimeMillis()
+
+            // Custom tabs in their own Recents card live outside the browser task, so clearing tabs doesn't reach them.
+            context.getSystemService<ActivityManager>()?.appTasks
+                ?.filter { it.taskInfo.baseIntent.component?.className == CustomTabActivity::class.java.name }
+                ?.forEach { it.finishAndRemoveTask() }
         }
     }
 

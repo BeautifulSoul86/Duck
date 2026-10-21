@@ -2519,7 +2519,7 @@ class BrowserTabFragment :
     }
 
     private fun closeCustomTab() {
-        (activity as? CustomTabActivity)?.finishAndRemoveTask()
+        (activity as? CustomTabActivity)?.finishAndRemoveOwnTask()
     }
 
     private fun finishCustomTab() {
@@ -2568,7 +2568,7 @@ class BrowserTabFragment :
         binding.browserLayout.gone()
         maliciousWarningView.gone()
         sslErrorView.bind(handler, errorResponse) { action ->
-            viewModel.onSSLCertificateWarningAction(action, errorResponse.url)
+            viewModel.onSSLCertificateWarningAction(action, errorResponse.url, isActiveCustomTab())
         }
         sslErrorView.show()
 
