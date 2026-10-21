@@ -15,4 +15,9 @@
   -->
 
 <resources>
+    <string name="importResultTitle">Import complete!</string>
+    <string name="importResultPasswordsImported">Passwords imported: <![CDATA[<b>%1$d</b>]]></string>
+    <string name="importResultBookmarksImported">Bookmarks imported: <![CDATA[<b>%1$d</b>]]></string>
+    <string name="importResultFailedToImport">Failed to import: <![CDATA[<b>%1$d</b>]]></string>
+    <string name="importResultDoneButton">Done</string>
 </resources>

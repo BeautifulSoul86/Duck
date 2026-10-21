@@ -28,6 +28,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import androidx.core.os.BundleCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
@@ -81,9 +83,11 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import logcat.LogPriority.ERROR
 import logcat.LogPriority.VERBOSE
+import logcat.LogPriority.WARN
 import logcat.asLog
 import logcat.logcat
 import javax.inject.Inject
+import com.google.android.material.R as MaterialR
 
 @InjectWith(FragmentScope::class)
 class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
@@ -183,6 +187,17 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
         binding.legacy.prePostViewSwitcher.displayedChild = 0
     }
 
+    private fun switchDialogShowRedesignedPreImportView(usesCredentialExchange: Boolean) {
+        val subtitle = if (usesCredentialExchange) {
+            R.string.importPasswordsChooseMethodDialogSubtitleDeviceAuth
+        } else {
+            R.string.importPasswordsChooseMethodDialogSubtitle
+        }
+        binding.redesign.preImport.preImportSubtitle.text = getString(subtitle)
+        binding.redesign.preImport.root.show()
+        showDialogContent()
+    }
+
     private fun switchDialogShowInBrowserPromoPreImportView(usesCredentialExchange: Boolean) {
         with(binding.legacy.preflow) {
             val (title, subtitle) = if (usesCredentialExchange) {
@@ -211,7 +226,6 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
     }
 
     private fun processSuccessResult(result: CredentialImporter.ImportResult.Finished) {
-        successImport = true
         showDialogContent()
 
         binding.legacy.postflow.importFinished.errorNotImported.visibility = View.GONE
@@ -253,6 +267,13 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
         )
 
         switchDialogShowImportResultsView()
+    }
+
+    private fun expandToFullHeight() {
+        val bottomSheetDialog = dialog as BottomSheetDialog
+        bottomSheetDialog.findViewById<View>(MaterialR.id.design_bottom_sheet)?.updateLayoutParams { height = ViewGroup.LayoutParams.MATCH_PARENT }
+        bottomSheetDialog.behavior.skipCollapsed = true
+        bottomSheetDialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
     }
 
     private fun showDialogContent() {
@@ -327,14 +348,50 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
     private fun renderViewState(viewState: ViewState) {
         logcat { "Autofill-import: rendering ${viewState.viewMode}, redesign enabled: ${viewState.isRedesignEnabled}" }
         when (viewState.viewMode) {
+            // a cancel event from here on is the dialog closing after import started, not the user backing out of it
+            is Importing -> ignoreCancellationEvents = true
+            is ImportSuccess -> successImport = true
+            else -> {}
+        }
+        // we hide the content while the first view is undetermined, so the UI choice and the expansion wait for the first real view
+        if (viewState.viewMode !is DeterminingFirstView) {
+            selectUi(viewState.isRedesignEnabled)
+        }
+        if (viewState.isRedesignEnabled) {
+            renderRedesignedViewState(viewState)
+        } else {
+            renderLegacyViewState(viewState)
+        }
+    }
+
+    private fun selectUi(isRedesignEnabled: Boolean) {
+        binding.legacy.root.isVisible = !isRedesignEnabled
+        binding.redesign.root.isVisible = isRedesignEnabled
+        binding.root.isFillViewport = isRedesignEnabled
+        if (isRedesignEnabled) {
+            expandToFullHeight()
+        }
+    }
+
+    private fun renderLegacyViewState(viewState: ViewState) {
+        when (viewState.viewMode) {
             is PreImport -> switchDialogShowPreImportView(viewState.usesCredentialExchange)
             is BrowserPromoPreImport -> switchDialogShowInBrowserPromoPreImportView(viewState.usesCredentialExchange)
             is ImportError -> processErrorResult()
             is ImportSuccess -> processSuccessResult(viewState.viewMode.importResult)
-            is Importing -> {
-                // a cancel event from here on is the dialog closing after import started, not the user backing out of it
-                ignoreCancellationEvents = true
-                switchDialogShowImportInProgressView()
+            is Importing -> switchDialogShowImportInProgressView()
+            is DeterminingFirstView -> hideDialogContent()
+            is FlowTerminated -> dismiss()
+        }
+    }
+
+    private fun renderRedesignedViewState(viewState: ViewState) {
+        binding.redesign.preImport.root.gone()
+        when (viewState.viewMode) {
+            is PreImport -> switchDialogShowRedesignedPreImportView(viewState.usesCredentialExchange)
+            is BrowserPromoPreImport, is Importing, is ImportSuccess, is ImportError -> {
+                logcat(WARN) { "Autofill-import: no redesigned UI for ${viewState.viewMode} yet" }
+                showDialogContent()
             }
             is DeterminingFirstView -> hideDialogContent()
             is FlowTerminated -> dismiss()
@@ -382,6 +439,8 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
         with(binding.legacy.preflow.importGcmButton) {
             setOnClickListener { onImportGcmButtonClicked() }
         }
+
+        binding.redesign.preImport.preImportButton.setOnClickListener { onImportGcmButtonClicked() }
 
         with(binding.legacy.postflow.importFinished.primaryCtaButton) {
             setOnClickListener {
@@ -442,6 +501,7 @@ class ImportFromGooglePasswordsDialog : BottomSheetDialogFragment() {
 
     private fun configureCloseButton(binding: ContentImportFromGooglePasswordDialogBinding) {
         binding.legacy.closeButton.setOnClickListener { (dialog as BottomSheetDialog).animateClosed() }
+        binding.redesign.redesignCloseButton.setOnClickListener { (dialog as BottomSheetDialog).animateClosed() }
     }
 
     private fun getOriginalUrl() = arguments?.getString(KEY_URL)
